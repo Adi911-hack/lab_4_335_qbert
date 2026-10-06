@@ -9,6 +9,8 @@ CELLS = {(r, c) for r in range(ROWS) for c in range(r + 1)}
 DEFAULT_PALETTE = [(90, 160, 220), (190, 120, 70), (100, 210, 140)]
 KEY_HOPS = {pygame.K_LEFT: (-1, -1), pygame.K_UP: (-1, 0), pygame.K_DOWN: (1, 0), pygame.K_RIGHT: (1, 1)}
 
+FLASH_DURATION = 350
+CUBE_FLASHES = {}
 
 def cube_palette(level):
     palettes = [
@@ -20,8 +22,7 @@ def cube_palette(level):
 
 
 def on_cube_completed(cell):
-    """Called when a cube first reaches its target colour; add a flash, sound, or bonus here."""
-    pass
+    CUBE_FLASHES[cell] = pygame.time.get_ticks() + FLASH_DURATION
 
 
 def bonus_life_threshold():
@@ -169,14 +170,42 @@ class Game:
 
     def draw_cube(self, screen, cell, colors):
         cx, cy = cube_center(*cell)
-        top = [(cx, cy - CUBE_H / 2), (cx + CUBE_W / 2, cy), (cx, cy + CUBE_H / 2), (cx - CUBE_W / 2, cy)]
+
+        top = [
+            (cx, cy - CUBE_H / 2),
+            (cx + CUBE_W / 2, cy),
+            (cx, cy + CUBE_H / 2),
+            (cx - CUBE_W / 2, cy)
+        ]
+
         color = colors[self.stages[cell]]
-        left = [top[3], top[2], (cx, cy + CUBE_H / 2 + SIDE), (cx - CUBE_W / 2, cy + SIDE)]
-        right = [top[1], top[2], (cx, cy + CUBE_H / 2 + SIDE), (cx + CUBE_W / 2, cy + SIDE)]
+
+        left = [
+            top[3],
+            top[2],
+            (cx, cy + CUBE_H / 2 + SIDE),
+            (cx - CUBE_W / 2, cy + SIDE)
+        ]
+
+        right = [
+            top[1],
+            top[2],
+            (cx, cy + CUBE_H / 2 + SIDE),
+            (cx + CUBE_W / 2, cy + SIDE)
+        ]
+
         pygame.draw.polygon(screen, shade(DEFAULT_PALETTE[0], 0.45), left)
         pygame.draw.polygon(screen, shade(DEFAULT_PALETTE[0], 0.3), right)
         pygame.draw.polygon(screen, color, top)
         pygame.draw.polygon(screen, (240, 240, 240), top, 1)
+
+        flash_until = CUBE_FLASHES.get(cell)
+
+        if flash_until:
+            if pygame.time.get_ticks() < flash_until:
+                pygame.draw.polygon(screen, (255, 255, 255), top, 4)
+            else:
+                CUBE_FLASHES.pop(cell, None)
 
     def draw(self, screen):
         screen.fill((18, 20, 38))
